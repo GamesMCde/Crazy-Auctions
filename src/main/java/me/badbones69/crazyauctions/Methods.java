@@ -22,6 +22,7 @@ public class Methods {
     
     public static Plugin plugin = Bukkit.getServer().getPluginManager().getPlugin("CrazyAuctions");
     private static FileManager fileManager = FileManager.getInstance();
+    private static double afterTaxes = 0.6;
     
     public static String color(String msg) {
         return ChatColor.translateAlternateColorCodes('&', msg);
@@ -389,7 +390,15 @@ public class Methods {
                         String winner = data.getString("Items." + i + ".TopBidder");
                         String seller = data.getString("Items." + i + ".Seller");
                         Long price = data.getLong("Items." + i + ".Price");
-                        CurrencyManager.addMoney(getOfflinePlayer(seller), price);
+                        if(Files.CONFIG.getFile().contains("Settings.Taxes")) {
+                            afterTaxes = Files.CONFIG.getFile().getDouble("Settings.After-Taxes");
+                            plugin.getLogger().info("Loaded taxes");
+                        }else {
+                            afterTaxes = 0.6;
+                            plugin.getLogger().info("Could not load Taxes. Taking default 40% taxes");
+                        }
+                        long playeradd=(long)(price*afterTaxes);
+                        CurrencyManager.addMoney(getOfflinePlayer(seller), playeradd);
                         CurrencyManager.removeMoney(getOfflinePlayer(winner), price);
                         HashMap<String, String> placeholders = new HashMap<>();
                         placeholders.put("%Price%", getPrice(i, false));

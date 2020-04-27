@@ -37,6 +37,7 @@ public class GUI implements Listener {
     private static HashMap<Player, String> IDs = new HashMap<>();
     private static CrazyAuctions crazyAuctions = CrazyAuctions.getInstance();
     private static Plugin plugin = Bukkit.getServer().getPluginManager().getPlugin("CrazyAuctions");
+    private double afterTaxes = 0.6;
     
     public static void openShop(Player player, ShopType sell, Category cat, int page) {
         Methods.updateAuction();
@@ -779,7 +780,13 @@ public class GUI implements Listener {
                                     ItemStack i = data.getItemStack("Items." + ID + ".Item");
                                     Bukkit.getPluginManager().callEvent(new AuctionBuyEvent(player, i, cost));
                                     CurrencyManager.removeMoney(player, cost);
-                                    CurrencyManager.addMoney(Methods.getOfflinePlayer(seller), cost);
+                                    if(Files.CONFIG.getFile().contains("Settings.Taxes")) {
+                                        this.afterTaxes = Files.CONFIG.getFile().getDouble("Settings.After-Taxes");
+                                    }else {
+                                        this.afterTaxes = 0.6;
+                                    }
+                                    long playeradd=(long)(cost*this.afterTaxes);
+                                    CurrencyManager.addMoney(Methods.getOfflinePlayer(seller), playeradd);
                                     HashMap<String, String> placeholders = new HashMap<>();
                                     placeholders.put("%Price%", Methods.getPrice(ID, false));
                                     placeholders.put("%price%", Methods.getPrice(ID, false));
