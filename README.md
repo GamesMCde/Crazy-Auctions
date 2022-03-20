@@ -1,4 +1,4 @@
-# Crazy Auctions
+# Crazy Auctions - Issues tab has been disabled, A rewrite is pending.
 Source Code for Crazy Auctions
 
 ## Build Status:
@@ -6,6 +6,11 @@ Source Code for Crazy Auctions
  
 ## Latest Version:
 [![Latest Version](https://img.shields.io/badge/Latest%20Version-1.2.12-blue)](https://github.com/badbones69/Crazy-Auctions/releases/latest)
+
+## Support:
+https://guilded.gg/badbones
+
+https://discord.com/invite/MCuz8JG/
 
 ## Jenkins: 
  https://jenkins.badbones69.com/job/Crazy-Auctions/

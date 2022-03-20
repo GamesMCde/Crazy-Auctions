@@ -3,6 +3,7 @@ package me.badbones69.crazyauctions.api;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -54,7 +55,7 @@ public class FileManager {
                     String fileLocation = file.getFileLocation();
                     //Switch between 1.12.2- and 1.13+ config version.
                     if (file == Files.CONFIG) {
-                        if (Version.getCurrentVersion().isOlder(Version.v1_13_R2)) {
+                        if (Version.isOlder(Version.v1_13_R2)) {
                             fileLocation = "config1.12.2-Down.yml";
                         } else {
                             fileLocation = "config1.13-Up.yml";
@@ -199,11 +200,32 @@ public class FileManager {
     /**
      * Saves the file from the loaded state to the file system.
      */
-    public void saveFile(Files file) {
+    public void saveFile(Files file, boolean sync) {
         try {
-            configurations.get(file).save(files.get(file));
-        } catch (IOException e) {
-            System.out.println(prefix + "Could not save " + file.getFileName() + "!");
+            File targetFile = files.get(file);
+            FileConfiguration configuration = configurations.get(file);
+
+            YamlConfiguration copy = new YamlConfiguration();
+            configuration.getValues(false).forEach(copy::set);
+
+            BukkitRunnable runnable = new BukkitRunnable() {
+                @Override
+                public void run() {
+                    try {
+                        copy.save(targetFile);
+                    } catch (IOException e) {
+                        System.out.println(prefix + "Could not save " + file.getFileName() + "!");
+                        e.printStackTrace();
+                    }
+                }
+            };
+            if (sync) {
+                runnable.run();
+            } else {
+                runnable.runTaskAsynchronously(plugin);
+            }
+        } catch (NullPointerException e) {
+            System.out.println(prefix + "File is null " + file.getFileName() + "!");
             e.printStackTrace();
         }
     }
@@ -292,7 +314,8 @@ public class FileManager {
         //ENUM_NAME("FileName.yml", "FilePath.yml"),
         CONFIG("config.yml", "config.yml"),
         DATA("Data.yml", "Data.yml"),
-        MESSAGES("Messages.yml", "Messages.yml");
+        MESSAGES("Messages.yml", "Messages.yml"),
+        TEST_FILE("Test-File.yml", "Test-File.yml");
         
         private String fileName;
         private String fileLocation;
@@ -334,10 +357,14 @@ public class FileManager {
         /**
          * Saves the file from the loaded state to the file system.
          */
-        public void saveFile() {
-            getInstance().saveFile(this);
+        public void saveFile(boolean sync) {
+            getInstance().saveFile(this, sync);
         }
-        
+
+        public void saveFile() {
+            getInstance().saveFile(this, false);
+        }
+
         /**
          * Overrides the loaded state file and loads the file systems file.
          */

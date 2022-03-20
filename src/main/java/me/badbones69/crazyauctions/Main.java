@@ -15,9 +15,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.yaml.snakeyaml.error.YAMLException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,14 +42,14 @@ public class Main extends JavaPlugin implements Listener {
             saveDefaultConfig();
         }
         Messages.addMissingMessages();
-        new Metrics(this); //Starts up bStats
+        new Metrics(this, 4624); //Starts up bStats
     }
     
     @Override
     public void onDisable() {
         int file = 0;
         Bukkit.getScheduler().cancelTask(file);
-        Files.DATA.saveFile();
+        Files.DATA.saveFile(true);
     }
     
     public boolean onCommand(CommandSender sender, Command cmd, String commandLable, String[] args) {
@@ -132,11 +134,10 @@ public class Main extends JavaPlugin implements Listener {
                         } else {
                             item.setAmount(item.getAmount() - amount);
                         }
-                        return true;
                     } else {
                         sender.sendMessage(Messages.DOSENT_HAVE_ITEM_IN_HAND.getMessage());
-                        return true;
                     }
+                    return true;
                 }
                 if (args[0].equalsIgnoreCase("Reload")) {// CA Reload
                     if (!Methods.hasPermission(sender, "Admin")) return true;
@@ -308,6 +309,10 @@ public class Main extends JavaPlugin implements Listener {
                                 }
                             }
                         }
+                        if (!allowBook(item)) {
+                            player.sendMessage(Messages.BOOK_NOT_ALLOWED.getMessage());
+                            return true;
+                        }
                         String seller = player.getName();
                         // For testing as another player
                         //String seller = "Test-Account";
@@ -367,28 +372,22 @@ public class Main extends JavaPlugin implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         final Player player = e.getPlayer();
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                if (player.getName().equals("BadBones69")) {
-                    player.sendMessage(Methods.getPrefix() + Methods.color("&7This server is running your Crazy Auctions Plugin. " + "&7It is running version &av" + Bukkit.getServer().getPluginManager().getPlugin("CrazyAuctions").getDescription().getVersion() + "&7."));
-                }
-            }
-        }.runTaskLater(this, 40);
+        if (player.getName().equalsIgnoreCase("BadBones69")) {
+            Bukkit.getScheduler().runTaskLater(this, () -> {
+                player.sendMessage(Methods.getPrefix() + Methods.color("&7This server is running your Crazy Auctions Plugin. " + "&7It is running version &av" + Bukkit.getServer().getPluginManager().getPlugin("CrazyAuctions").getDescription().getVersion() + "&7."));
+            }, 40);
+        }
     }
     
     private void startCheck() {
-        new BukkitRunnable() {
-            @Override
-            public void run() {
-                Methods.updateAuction();
-            }
-        }.runTaskTimer(this, 20, 5 * 20);
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            Methods.updateAuction();
+        }, 20, 5 * 20);
     }
     
     private ArrayList<Material> getDamageableItems() {
         ArrayList<Material> ma = new ArrayList<>();
-        if (Version.getCurrentVersion().isNewer(Version.v1_12_R1)) {
+        if (Version.isNewer(Version.v1_12_R1)) {
             ma.add(Material.matchMaterial("GOLDEN_HELMET"));
             ma.add(Material.matchMaterial("GOLDEN_CHESTPLATE"));
             ma.add(Material.matchMaterial("GOLDEN_LEGGINGS"));
@@ -458,6 +457,26 @@ public class Main extends JavaPlugin implements Listener {
         ma.add(Material.ANVIL);
         ma.add(Material.FISHING_ROD);
         return ma;
+    }
+    
+    private boolean allowBook(ItemStack item) {
+        if (item != null && item.hasItemMeta() && item.getItemMeta() instanceof BookMeta) {
+            System.out.println("[Crazy Auctions] Checking " + item.getType() + " for illegal unicode.");
+            try {
+                Files.TEST_FILE.getFile().set("Test", item);
+                Files.TEST_FILE.saveFile();
+                System.out.println("[Crazy Auctions] " + item.getType() + " has passed unicode checks.");
+            } catch (YAMLException e) {
+                System.out.println("[Crazy Auctions] " + item.getType() + " has failed unicode checks and has been denied.");
+                return false;
+            }
+            return ((BookMeta) item.getItemMeta()).getPages().stream().mapToInt(String :: length).sum() < 2000;
+        }
+        return true;
+    }
+    
+    public Material getMaterial(String newMaterial, String oldMaterial) {
+        return Material.matchMaterial(Version.isNewer(Version.v1_12_R1) ? newMaterial : oldMaterial);
     }
     
 }
